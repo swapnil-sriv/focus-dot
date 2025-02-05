@@ -1,96 +1,88 @@
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'camera_component.dart';
 
-void main() {
-  runApp(FocusDotApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Ensure cameras are initialized
+  final cameras = await availableCameras();
+  final firstCamera = cameras.first;
+
+  runApp(FocusDotApp(camera: firstCamera));
 }
 
 class FocusDotApp extends StatelessWidget {
+  final CameraDescription camera;
+
+  FocusDotApp({required this.camera});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: HomePage(),
+      home: HomePage(camera: camera),
     );
   }
 }
 
 class HomePage extends StatelessWidget {
+  final CameraDescription camera;
+
+  HomePage({required this.camera});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-  appBar: AppBar(
-    title: Text('Focus Dot App'),
-    actions: [
-      PopupMenuButton<String>(
-        onSelected: (value) {
-          // Handle menu actions
-        },
-        itemBuilder: (BuildContext context) {
-          return [
-            PopupMenuItem(
-              value: 'settings',
-              child: Text('Settings'),
+      appBar: AppBar(
+        title: Text('Focus Dot App'),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              // Handle menu actions
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                PopupMenuItem(
+                  value: 'settings',
+                  child: Text('Settings'),
+                ),
+              ];
+            },
+          ),
+        ],
+      ),
+      backgroundColor: const Color.fromARGB(255, 2, 30, 73),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CameraSense(camera: camera),
+            SizedBox(height: 20),
+            Text(
+              'focus on the white dot.',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-          ];
-        },
-      ),
-    ],
-  ),
-  backgroundColor: const Color.fromARGB(255, 2, 25, 59), // Change the background color here
-  body: Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        FocusDot(),
-        SizedBox(height: 20),
-        Text(
-          'focus on the white dot.',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ],
         ),
-      ],
-    ),
-  ),
-  bottomNavigationBar: BottomNavigationBar(
-    items: [
-      BottomNavigationBarItem(
-        icon: Icon(Icons.circle_outlined),
-        label: 'Focus',
       ),
-      BottomNavigationBarItem(
-        icon: Icon(Icons.settings),
-        label: 'Settings',
-      ),
-    ],
-    currentIndex: 0, // Default index
-    onTap: (index) {
-      // Handle navigation
-    },
-  ),
-);
-  }
-} 
-
-class FocusDot extends StatefulWidget {
-  @override
-  _FocusDotState createState() => _FocusDotState();
-}
-
-class _FocusDotState extends State<FocusDot> {
-  double _dotSize = 20.0; // Initial size of the dot
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
-      width: _dotSize,
-      height: _dotSize,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
+      bottomNavigationBar: BottomNavigationBar(
+        items: [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.circle_outlined),
+            label: 'Focus',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
+        currentIndex: 0, // Default index
+        onTap: (index) {
+          // Handle navigation
+        },
       ),
     );
   }
-
-  // Add camera functionality and dot size adjustment logic here later
 }
