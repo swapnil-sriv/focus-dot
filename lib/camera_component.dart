@@ -28,7 +28,11 @@ class _CameraSenseState extends State<CameraSense> {
       ResolutionPreset.medium,
     );
 
-    _initializeControllerFuture = _controller.initialize();
+    _initializeControllerFuture = _controller.initialize().then((_) {
+  print("Camera initialized successfully");
+}).catchError((error) {
+  print("Failed to initialize camera: $error");
+});;
 
     _controller.startImageStream((CameraImage image) async {
       final inputImage = _convertToInputImage(image);
