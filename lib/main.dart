@@ -7,9 +7,14 @@ void main() async {
 
   // Ensure cameras are initialized
   final cameras = await availableCameras();
-  final firstCamera = cameras.first;
 
-  runApp(FocusDotApp(camera: firstCamera));
+  // Find the front camera
+  final frontCamera = cameras.firstWhere(
+    (camera) => camera.lensDirection == CameraLensDirection.front,
+    orElse: () => cameras.first, // Fallback to the first camera if no front camera is found
+  );
+
+  runApp(FocusDotApp(camera: frontCamera));
 }
 
 class FocusDotApp extends StatelessWidget {
@@ -61,7 +66,7 @@ class HomePage extends StatelessWidget {
             CameraSense(camera: camera),
             SizedBox(height: 20),
             Text(
-              'focus on the white dot.',
+              'Focus on the white dot.',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],

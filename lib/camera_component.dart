@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_ml_kit/google_ml_kit.dart'; // Use the main ML Kit package
+import 'package:google_ml_kit/google_ml_kit.dart';
 
 class CameraSense extends StatefulWidget {
   final CameraDescription camera;
@@ -28,11 +28,7 @@ class _CameraSenseState extends State<CameraSense> {
       ResolutionPreset.medium,
     );
 
-    _initializeControllerFuture = _controller.initialize().then((_) {
-  print("Camera initialized successfully");
-}).catchError((error) {
-  print("Failed to initialize camera: $error");
-});;
+    _initializeControllerFuture = _controller.initialize();
 
     _controller.startImageStream((CameraImage image) async {
       final inputImage = _convertToInputImage(image);
