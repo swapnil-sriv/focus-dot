@@ -32,11 +32,16 @@ class FocusDotApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   final CameraDescription camera;
 
   HomePage({required this.camera});
 
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,7 +68,7 @@ class HomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CameraSense(camera: camera),
+            CameraSense(camera: widget.camera),
             SizedBox(height: 20),
             Text(
               'Focus on the white dot.',
@@ -71,7 +76,7 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
-      ), 
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: [
           BottomNavigationBarItem(

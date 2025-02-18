@@ -129,14 +129,32 @@ class _CameraSenseState extends State<CameraSense> with WidgetsBindingObserver {
       print('Image width: ${image.width}, height: ${image.height}');
       print('Plane bytesPerRow: ${plane.bytesPerRow}');
 
+      // Determine the correct rotation based on the sensor orientation
+      final sensorOrientation = widget.camera.sensorOrientation;
+      InputImageRotation rotation;
+      switch (sensorOrientation) {
+        case 90:
+          rotation = InputImageRotation.rotation90deg;
+          break;
+        case 180:
+          rotation = InputImageRotation.rotation180deg;
+          break;
+        case 270:
+          rotation = InputImageRotation.rotation270deg;
+          break;
+        default:
+          rotation = InputImageRotation.rotation0deg;
+      }
+
+      print('Sensor orientation: $sensorOrientation');
+      print('Using rotation: $rotation');
+
       return InputImage.fromBytes(
         bytes: plane.bytes,
         metadata: InputImageMetadata(
           size: Size(image.width.toDouble(), image.height.toDouble()),
-          rotation: Platform.isAndroid 
-              ? InputImageRotation.rotation270deg 
-              : InputImageRotation.rotation0deg,
-          format: InputImageFormat.yuv420,
+          rotation: rotation, // Use the correct rotation
+          format: InputImageFormat.yuv420, // Always use YUV420 for camera images
           bytesPerRow: plane.bytesPerRow,
         ),
       );
