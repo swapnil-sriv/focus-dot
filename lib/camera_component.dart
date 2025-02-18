@@ -1,161 +1,97 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:tflite/tflite.dart';
 
 class CameraSense extends StatefulWidget {
-  final CameraDescription camera;
-
-  const CameraSense({Key? key, required this.camera}) : super(key: key);
-
   @override
   _CameraSenseState createState() => _CameraSenseState();
 }
 
-class _CameraSenseState extends State<CameraSense> with WidgetsBindingObserver {
+class _CameraSenseState extends State<CameraSense> {
   late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-  late FaceDetector _faceDetector;
-  
-  bool _isProcessingImage = false;
+  bool _isLookingAtScreen = false;
   double _dotSize = 20.0;
-  Timer? _resetTimer;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initializeFaceDetector();
     _initializeCamera();
+    _loadModel();
   }
 
-  void _initializeFaceDetector() {
-    _faceDetector = GoogleMlKit.vision.faceDetector(
-      FaceDetectorOptions(
-        performanceMode: FaceDetectorMode.fast,
-        enableLandmarks: true,
-        enableClassification: true,
-      ),
-    );
+  Future<void> _loadModel() async {
+    try {
+      await Tflite.loadModel(
+        model: "assets/blazeface.tflite",
+        labels: "assets/blazeface.txt", // Optional labels file
+      );
+      print('Model loaded successfully');
+    } catch (e) {
+      print('Failed to load model: $e');
+    }
   }
 
   Future<void> _initializeCamera() async {
     try {
-      _controller = CameraController(
-        widget.camera,
-        ResolutionPreset.medium,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.yuv420,  // Always use yuv420 for ML Kit
+      final cameras = await availableCameras();
+      final frontCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
       );
 
-      _initializeControllerFuture = _controller.initialize().then((_) {
-        if (!mounted) return;
-        _startImageStream();
-      }).catchError((error) {
-        print('Camera initialization error: $error');
-      });
+      _controller = CameraController(
+        frontCamera,
+        ResolutionPreset.medium,
+      );
+
+      await _controller.initialize();
+      _startImageStream();
     } catch (e) {
-      print('Camera setup error: $e');
+      print('Camera initialization error: $e');
     }
   }
 
   void _startImageStream() {
-    try {
-      _controller.startImageStream((CameraImage image) {
-        if (!_isProcessingImage) {
-          _processImageStream(image);
-        }
-      });
-    } catch (e) {
-      print('Error starting image stream: $e');
-    }
-  }
-
-  void _processImageStream(CameraImage image) {
-    _isProcessingImage = true;
-
-    try {
-      _processImage(image).then((_) {
-        _isProcessingImage = false;
-      }).catchError((error) {
-        print('Error processing image: $error');
-        _isProcessingImage = false;
-      });
-    } catch (e) {
-      print('Error in image stream processing: $e');
-      _isProcessingImage = false;
-    }
-  }
-
-  Future<void> _processImage(CameraImage image) async {
-    try {
-      if (!mounted) return;
-
+    _controller.startImageStream((CameraImage image) async {
       final inputImage = _convertToInputImage(image);
-      if (inputImage == null) {
-        print('Failed to convert camera image');
-        return;
-      }
+      if (inputImage == null) return;
 
-      final faces = await _faceDetector.processImage(inputImage);
-      
-      if (!mounted) return;
+      final faces = await Tflite.runModelOnFrame(
+        bytesList: inputImage.planes.map((plane) => plane.bytes).toList(),
+        imageHeight: inputImage.height,
+        imageWidth: inputImage.width,
+        imageMean: 127.5,
+        imageStd: 127.5,
+        rotation: 90, // Adjust rotation as needed
+        numResults: 1,
+        threshold: 0.5,
+        asynch: true,
+      );
 
-      if (faces.isNotEmpty) {
-        final face = faces.first;
-        final isLooking = _isLookingAtScreen(face);
-        
+      if (faces != null && faces.isNotEmpty) {
         setState(() {
-          if (isLooking) {
-            _dotSize = _dotSize + 1.0; // More gradual increase
-            if (_dotSize > 200.0) _dotSize = 200.0;
-          } else {
-            _resetDotSize();
-          }
+          _isLookingAtScreen = true;
+          _dotSize = _dotSize < 200.0 ? _dotSize + 5.0 : _dotSize;
         });
       } else {
-        _resetDotSize();
+        setState(() {
+          _isLookingAtScreen = false;
+          _dotSize = 20.0;
+        });
       }
-    } catch (e) {
-      print('Face detection error: $e');
-    }
+    });
   }
 
   InputImage? _convertToInputImage(CameraImage image) {
     try {
-      final plane = image.planes[0];
-      print('Image format: ${image.format.group}');
-      print('Image width: ${image.width}, height: ${image.height}');
-      print('Plane bytesPerRow: ${plane.bytesPerRow}');
-
-      // Determine the correct rotation based on the sensor orientation
-      final sensorOrientation = widget.camera.sensorOrientation;
-      InputImageRotation rotation;
-      switch (sensorOrientation) {
-        case 90:
-          rotation = InputImageRotation.rotation90deg;
-          break;
-        case 180:
-          rotation = InputImageRotation.rotation180deg;
-          break;
-        case 270:
-          rotation = InputImageRotation.rotation270deg;
-          break;
-        default:
-          rotation = InputImageRotation.rotation0deg;
-      }
-
-      print('Sensor orientation: $sensorOrientation');
-      print('Using rotation: $rotation');
-
       return InputImage.fromBytes(
-        bytes: plane.bytes,
+        bytes: image.planes[0].bytes,
         metadata: InputImageMetadata(
           size: Size(image.width.toDouble(), image.height.toDouble()),
-          rotation: rotation, // Use the correct rotation
-          format: InputImageFormat.yuv420, // Always use YUV420 for camera images
-          bytesPerRow: plane.bytesPerRow,
+          rotation: InputImageRotation.rotation90deg, // Adjust rotation as needed
+          format: InputImageFormat.yuv420,
+          bytesPerRow: image.planes[0].bytesPerRow,
         ),
       );
     } catch (e) {
@@ -164,76 +100,33 @@ class _CameraSenseState extends State<CameraSense> with WidgetsBindingObserver {
     }
   }
 
-  bool _isLookingAtScreen(Face face) {
-    const double maxYaw = 30.0;   // More lenient left/right rotation
-    const double maxPitch = 25.0; // More lenient up/down rotation
-    const double maxRoll = 20.0;  // More lenient tilt
-
-    final double yaw = face.headEulerAngleY?.abs() ?? 90.0;
-    final double pitch = face.headEulerAngleX?.abs() ?? 90.0;
-    final double roll = face.headEulerAngleZ?.abs() ?? 90.0;
-
-    return yaw < maxYaw && pitch < maxPitch && roll < maxRoll;
-  }
-
-  void _resetDotSize() {
-    if (!mounted) return;
-    
-    _resetTimer?.cancel();
-    setState(() {
-      _dotSize = 20.0;
-    });
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_controller.value.isInitialized) return;
-
-    if (state == AppLifecycleState.inactive) {
-      _controller.dispose();
-    } else if (state == AppLifecycleState.resumed) {
-      _initializeCamera();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initializeControllerFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return Container(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.width * 4/3,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CameraPreview(_controller),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 50), // Even faster animation
-                  width: _dotSize,
-                  height: _dotSize,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
-          );
-        } else {
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
+    if (!_controller.value.isInitialized) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        CameraPreview(_controller),
+        AnimatedContainer(
+          duration: Duration(milliseconds: 300),
+          width: _dotSize,
+          height: _dotSize,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ],
     );
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _resetTimer?.cancel();
     _controller.dispose();
-    _faceDetector.close();
+    Tflite.close();
     super.dispose();
   }
 }

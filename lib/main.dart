@@ -1,47 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
 import 'camera_component.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Ensure cameras are initialized
-  final cameras = await availableCameras();
-
-  // Find the front camera
-  final frontCamera = cameras.firstWhere(
-    (camera) => camera.lensDirection == CameraLensDirection.front,
-    orElse: () => cameras.first, // Fallback to the first camera if no front camera is found
-  );
-
-  runApp(FocusDotApp(camera: frontCamera));
+  runApp(FocusDotApp());
 }
 
 class FocusDotApp extends StatelessWidget {
-  final CameraDescription camera;
-
-  FocusDotApp({required this.camera});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: HomePage(camera: camera),
+      home: HomePage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
-  final CameraDescription camera;
-
-  HomePage({required this.camera});
-
-  @override
-  _HomePageState createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
+class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,7 +44,7 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CameraSense(camera: widget.camera),
+            CameraSense(),
             SizedBox(height: 20),
             Text(
               'Focus on the white dot.',
