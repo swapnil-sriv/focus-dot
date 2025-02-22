@@ -92,8 +92,8 @@ Also, add **camera permissions** in `AndroidManifest.xml`:
 
 ## 📸 Screenshots
 
-![Screenshot 1](https://github.com/swapnil-sriv/focus-dot/blob/camera-component/Screenshot1.jpg?raw=true)
-![Screenshot 2](https://github.com/swapnil-sriv/focus-dot/blob/camera-component/Screenshot2.jpg?raw=true)
+![Screenshot 1](https://github.com/swapnil-sriv/focus-dot/blob/main/Screenshot1.jpg?raw=true)
+![Screenshot 2](https://github.com/swapnil-sriv/focus-dot/blob/main/Screenshot2.jpg?raw=true)
 
 
 ---
@@ -113,6 +113,6 @@ Want to improve this project? Feel free to fork and submit a pull request! 🙌
 ## 📝 Author
 
 Developed by **Swapnil**\
-📧 Contact: [your-email@example.com](mailto\:your-email@example.com)\
-💼 LinkedIn: [Your LinkedIn](https://linkedin.com/in/your-profile)
+📧 Contact: [swapnilsriv441@gmail.com](mailto\:swapnilsriv441@gmail.com)\
+💼 LinkedIn: [https://www.linkedin.com/in/swapnil-srivastava-b702a9265](https://www.linkedin.com/in/swapnil-srivastava-b702a9265)
 
