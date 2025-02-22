@@ -93,8 +93,8 @@ Also, add **camera permissions** in `AndroidManifest.xml`:
 ## 📸 Screenshots
 
 
-![Screenshot 1](https://github.com/swapnil-sriv/focus-dot/blob/main/focus-dot1.jpg?raw=true)
-![Screenshot 2](https://github.com/swapnil-sriv/focus-dot/blob/main/focus-dot2.jpg?raw=true)
+![Screenshot 1](https://github.com/swapnil-sriv/focus-dot/blob/main/focus-dot1.png?raw=true)
+![Screenshot 2](https://github.com/swapnil-sriv/focus-dot/blob/main/focus-dot2.png?raw=true)
 
 
 
