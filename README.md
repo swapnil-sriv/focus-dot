@@ -113,6 +113,6 @@ Want to improve this project? Feel free to fork and submit a pull request! 🙌
 ## 📝 Author
 
 Developed by **Swapnil**\
-📧 Contact: [your-email@example.com](mailto\:swapnilsriv441@gmail.com)\
-💼 LinkedIn: [Your LinkedIn](https://www.linkedin.com/in/swapnil-srivastava-b702a9265)
+📧 Contact: [swapnilsriv441@gmail.com](mailto\:swapnilsriv441@gmail.com)\
+💼 LinkedIn: [https://www.linkedin.com/in/swapnil-srivastava-b702a9265](https://www.linkedin.com/in/swapnil-srivastava-b702a9265)
 
