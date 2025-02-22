@@ -12,10 +12,12 @@
     <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <application
-        android:label="focusdot"
+        android:label="Focus Dot"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:hardwareAccelerated="true"> <!-- Enable hardware acceleration -->
+        android:requestLegacyExternalStorage="true"
+        android:allowBackup="false"
+        android:largeHeap="true">
 
         <activity
             android:name=".MainActivity"
