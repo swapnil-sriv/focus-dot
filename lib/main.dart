@@ -31,8 +31,20 @@ class HomePage extends StatelessWidget {
         itemBuilder: (BuildContext context) {
           return [
             PopupMenuItem(
+              value: 'help',
+              child: Text('Help'),
+            ),
+            PopupMenuItem(
               value: 'settings',
               child: Text('Settings'),
+            ),
+            PopupMenuItem(
+              value: 'about',
+              child: Text('About'),
+            ),
+            PopupMenuItem(
+              value: 'exit',
+              child: Text('Exit'),
             ),
           ];
         },
@@ -40,19 +52,20 @@ class HomePage extends StatelessWidget {
     ],
   ),
   backgroundColor: const Color.fromARGB(255, 2, 25, 59), // Change the background color here
-  body: Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        CameraSense(),
-        SizedBox(height: 20),
-        Text(
-          'focus on the white dot.',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ],
+  body: Column(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Expanded( // Pushes everything else upwards
+      child: CameraSense(),
     ),
-  ),
+    SizedBox(height: 40), // Adjust space as needed
+    Text(
+      'Focus on the white dot...',
+      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    ),
+    SizedBox(height: 50), // Space below text
+  ],
+),
   bottomNavigationBar: BottomNavigationBar(
     items: [
       BottomNavigationBarItem(
