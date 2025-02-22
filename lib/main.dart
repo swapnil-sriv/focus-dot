@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'camera_component.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(FocusDotApp());
 }
 
@@ -29,8 +31,20 @@ class HomePage extends StatelessWidget {
         itemBuilder: (BuildContext context) {
           return [
             PopupMenuItem(
+              value: 'help',
+              child: Text('Help'),
+            ),
+            PopupMenuItem(
               value: 'settings',
               child: Text('Settings'),
+            ),
+            PopupMenuItem(
+              value: 'about',
+              child: Text('About'),
+            ),
+            PopupMenuItem(
+              value: 'exit',
+              child: Text('Exit'),
             ),
           ];
         },
@@ -38,19 +52,20 @@ class HomePage extends StatelessWidget {
     ],
   ),
   backgroundColor: const Color.fromARGB(255, 2, 25, 59), // Change the background color here
-  body: Center(
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        FocusDot(),
-        SizedBox(height: 20),
-        Text(
-          'focus on the white dot.',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-      ],
+  body: Column(
+  mainAxisAlignment: MainAxisAlignment.center,
+  children: [
+    Expanded( // Pushes everything else upwards
+      child: CameraSense(),
     ),
-  ),
+    SizedBox(height: 40), // Adjust space as needed
+    Text(
+      'Focus on the white dot...',
+      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+    ),
+    SizedBox(height: 50), // Space below text
+  ],
+),
   bottomNavigationBar: BottomNavigationBar(
     items: [
       BottomNavigationBarItem(
@@ -70,27 +85,3 @@ class HomePage extends StatelessWidget {
 );
   }
 } 
-
-class FocusDot extends StatefulWidget {
-  @override
-  _FocusDotState createState() => _FocusDotState();
-}
-
-class _FocusDotState extends State<FocusDot> {
-  double _dotSize = 20.0; // Initial size of the dot
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
-      width: _dotSize,
-      height: _dotSize,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-      ),
-    );
-  }
-
-  // Add camera functionality and dot size adjustment logic here later
-}
