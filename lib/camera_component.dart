@@ -163,7 +163,7 @@ final int _framesToConfirm = 5;  // Number of frames to confirm detection
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CameraPreview(_controller!),
+          //CameraPreview(_controller!),
           AnimatedContainer(
             duration: Duration(milliseconds: 300),
             width: _dotSize,
