@@ -1,239 +1,189 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 class CameraSense extends StatefulWidget {
-  final CameraDescription camera;
-
-  const CameraSense({Key? key, required this.camera}) : super(key: key);
-
   @override
   _CameraSenseState createState() => _CameraSenseState();
 }
 
 class _CameraSenseState extends State<CameraSense> with WidgetsBindingObserver {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-  late FaceDetector _faceDetector;
-  
-  bool _isProcessingImage = false;
+  CameraController? _controller;
+  bool _isLookingAtScreen = false;
   double _dotSize = 20.0;
-  Timer? _resetTimer;
+  bool _isCameraInitialized = false;
+  bool _isProcessingFrame = false;
+  FaceDetector? _faceDetector;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _initializeFaceDetector();
     _initializeCamera();
-  }
-
-  void _initializeFaceDetector() {
-    _faceDetector = GoogleMlKit.vision.faceDetector(
-      FaceDetectorOptions(
-        performanceMode: FaceDetectorMode.fast,
-        enableLandmarks: true,
-        enableClassification: true,
+    _faceDetector = FaceDetector(
+      options: FaceDetectorOptions(
+        enableClassification: true, // Detect if eyes are open
+        enableTracking: true, // Track faces
+        minFaceSize: 0.2,  // Adjusts the minimum face size (0.1 = more sensitive, 0.5 = less sensitive)
+        performanceMode: FaceDetectorMode.accurate, // Change to `fast` if laggy
       ),
     );
   }
 
-  Future<void> _initializeCamera() async {
-    try {
-      _controller = CameraController(
-        widget.camera,
-        ResolutionPreset.medium,
-        enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.yuv420,  // Always use yuv420 for ML Kit
-      );
-
-      _initializeControllerFuture = _controller.initialize().then((_) {
-        if (!mounted) return;
-        _startImageStream();
-      }).catchError((error) {
-        print('Camera initialization error: $error');
-      });
-    } catch (e) {
-      print('Camera setup error: $e');
-    }
-  }
-
-  void _startImageStream() {
-    try {
-      _controller.startImageStream((CameraImage image) {
-        if (!_isProcessingImage) {
-          _processImageStream(image);
-        }
-      });
-    } catch (e) {
-      print('Error starting image stream: $e');
-    }
-  }
-
-  void _processImageStream(CameraImage image) {
-    _isProcessingImage = true;
-
-    try {
-      _processImage(image).then((_) {
-        _isProcessingImage = false;
-      }).catchError((error) {
-        print('Error processing image: $error');
-        _isProcessingImage = false;
-      });
-    } catch (e) {
-      print('Error in image stream processing: $e');
-      _isProcessingImage = false;
-    }
-  }
-
-  Future<void> _processImage(CameraImage image) async {
-    try {
-      if (!mounted) return;
-
-      final inputImage = _convertToInputImage(image);
-      if (inputImage == null) {
-        print('Failed to convert camera image');
-        return;
-      }
-
-      final faces = await _faceDetector.processImage(inputImage);
-      
-      if (!mounted) return;
-
-      if (faces.isNotEmpty) {
-        final face = faces.first;
-        final isLooking = _isLookingAtScreen(face);
-        
-        setState(() {
-          if (isLooking) {
-            _dotSize = _dotSize + 1.0; // More gradual increase
-            if (_dotSize > 200.0) _dotSize = 200.0;
-          } else {
-            _resetDotSize();
-          }
-        });
-      } else {
-        _resetDotSize();
-      }
-    } catch (e) {
-      print('Face detection error: $e');
-    }
-  }
-
-  InputImage? _convertToInputImage(CameraImage image) {
-    try {
-      final plane = image.planes[0];
-      print('Image format: ${image.format.group}');
-      print('Image width: ${image.width}, height: ${image.height}');
-      print('Plane bytesPerRow: ${plane.bytesPerRow}');
-
-      // Determine the correct rotation based on the sensor orientation
-      final sensorOrientation = widget.camera.sensorOrientation;
-      InputImageRotation rotation;
-      switch (sensorOrientation) {
-        case 90:
-          rotation = InputImageRotation.rotation90deg;
-          break;
-        case 180:
-          rotation = InputImageRotation.rotation180deg;
-          break;
-        case 270:
-          rotation = InputImageRotation.rotation270deg;
-          break;
-        default:
-          rotation = InputImageRotation.rotation0deg;
-      }
-
-      print('Sensor orientation: $sensorOrientation');
-      print('Using rotation: $rotation');
-
-      return InputImage.fromBytes(
-        bytes: plane.bytes,
-        metadata: InputImageMetadata(
-          size: Size(image.width.toDouble(), image.height.toDouble()),
-          rotation: rotation, // Use the correct rotation
-          format: InputImageFormat.yuv420, // Always use YUV420 for camera images
-          bytesPerRow: plane.bytesPerRow,
-        ),
-      );
-    } catch (e) {
-      print('Error converting image: $e');
-      return null;
-    }
-  }
-
-  bool _isLookingAtScreen(Face face) {
-    const double maxYaw = 30.0;   // More lenient left/right rotation
-    const double maxPitch = 25.0; // More lenient up/down rotation
-    const double maxRoll = 20.0;  // More lenient tilt
-
-    final double yaw = face.headEulerAngleY?.abs() ?? 90.0;
-    final double pitch = face.headEulerAngleX?.abs() ?? 90.0;
-    final double roll = face.headEulerAngleZ?.abs() ?? 90.0;
-
-    return yaw < maxYaw && pitch < maxPitch && roll < maxRoll;
-  }
-
-  void _resetDotSize() {
-    if (!mounted) return;
-    
-    _resetTimer?.cancel();
-    setState(() {
-      _dotSize = 20.0;
-    });
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!_controller.value.isInitialized) return;
+    if (_controller == null || !_controller!.value.isInitialized) return;
 
-    if (state == AppLifecycleState.inactive) {
-      _controller.dispose();
+    if (state == AppLifecycleState.inactive || state == AppLifecycleState.paused) {
+      _controller?.dispose();
+      _controller = null;
     } else if (state == AppLifecycleState.resumed) {
       _initializeCamera();
     }
   }
 
+  Future<void> _initializeCamera() async {
+    if (_controller != null) {
+      await _controller!.dispose();
+      _controller = null;
+    }
+
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        print("No cameras available.");
+        return;
+      }
+
+      final frontCamera = cameras.firstWhere(
+        (camera) => camera.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      _controller = CameraController(
+        frontCamera,
+        ResolutionPreset.low,
+        enableAudio: false,
+        imageFormatGroup: ImageFormatGroup.nv21,
+      );
+
+      await _controller!.initialize();
+
+      if (!mounted) return;
+
+      setState(() {
+        _isCameraInitialized = true;
+      });
+
+      _startImageStream();
+    } catch (e) {
+      print('Camera initialization error: $e');
+      setState(() {
+        _isCameraInitialized = false;
+      });
+    }
+  }
+
+  int _faceDetectedFrames = 0;  // Counter for frames with a face
+int _faceLostFrames = 0;  // Counter for frames without a face
+final int _framesToConfirm = 5;  // Number of frames to confirm detection
+
+ void _startImageStream() {
+  if (!_isCameraInitialized || _controller == null) return;
+
+  _controller!.startImageStream((CameraImage image) async {
+    if (!mounted || _isProcessingFrame) return;
+    _isProcessingFrame = true;
+
+    try {
+      InputImage inputImage = _convertCameraImage(image);
+      List<Face> faces = await _faceDetector!.processImage(inputImage);
+
+      if (faces.isNotEmpty) {
+        _faceLostFrames = 0;  // Reset lost face counter
+        _faceDetectedFrames++;
+
+       
+         // Only grow after 5 stable frames
+          if (mounted) {
+            setState(() {
+              _isLookingAtScreen = true;
+              _dotSize = (_dotSize < 200.0) ? _dotSize + 5.0 : 200.0;
+            });
+          }
+        
+      } else {
+        _faceDetectedFrames = 0;  // Reset detected frames
+        _faceLostFrames++;
+
+        if (_faceLostFrames >= _framesToConfirm) {  // Only reset after 5 missing frames
+          if (mounted) {
+            setState(() {
+              _isLookingAtScreen = false;
+              _dotSize = 20.0;
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error in face detection: $e');
+    } finally {
+      _isProcessingFrame = false;
+    }
+  });
+}
+
+  InputImage _convertCameraImage(CameraImage image) {
+    return InputImage.fromBytes(
+      bytes: image.planes[0].bytes,
+      metadata: InputImageMetadata(
+        size: Size(image.width.toDouble(), image.height.toDouble()),
+        rotation: InputImageRotation.rotation90deg,
+        format: InputImageFormat.nv21,
+        bytesPerRow: image.planes[0].bytesPerRow,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _initializeControllerFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return Container(
-            width: MediaQuery.of(context).size.width,
-            height: MediaQuery.of(context).size.width * 4/3,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                CameraPreview(_controller),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 50), // Even faster animation
-                  width: _dotSize,
-                  height: _dotSize,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
+    if (!_isCameraInitialized || _controller == null) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return Container(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.width * 4 / 3,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CameraPreview(_controller!),
+          AnimatedContainer(
+            duration: Duration(milliseconds: 300),
+            width: _dotSize,
+            height: _dotSize,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.8),
+              shape: BoxShape.circle,
             ),
-          );
-        } else {
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
+          ),
+        ],
+      ),
     );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _resetTimer?.cancel();
-    _controller.dispose();
-    _faceDetector.close();
+    _controller?.stopImageStream();
+    _controller?.dispose();
+    _faceDetector?.close();
     super.dispose();
   }
 }
